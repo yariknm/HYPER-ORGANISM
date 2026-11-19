@@ -1,7 +1,7 @@
 #ifndef HYPER_ORGANISM_CROSSOVER_CROSSOVER_HPP
 #define HYPER_ORGANISM_CROSSOVER_CROSSOVER_HPP
 
-#include "core/types.hpp"
+#include "hyper_organism/core/types.hpp"
 #include <vector>
 
 namespace hyper_organism {

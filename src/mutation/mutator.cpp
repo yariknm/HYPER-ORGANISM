@@ -1,6 +1,5 @@
 #include "hyper_organism/mutation/mutator.hpp"
 #include "hyper_organism/core/types.hpp"
-#include "hyper_organism/isa/backend.hpp"
 
 #include <random>
 #include <algorithm>
@@ -17,10 +16,11 @@ public:
         rng_.seed(seed);
         Organism child = parent;
         child.generation = parent.generation + 1;
-        child.parent_a = 0; // Will be set by caller
+        child.parent_a = 0;
         child.parent_b = 0;
         
-        // Apply multiple mutation strategies
+        if (child.code.bytes.empty()) return child;
+        
         if (rng_() % 100 < static_cast<int>(rate_ * 100)) {
             instruction_reorder(child);
         }
@@ -35,8 +35,8 @@ public:
         }
         
         // Ensure RET at end
-        if (child.code.size > 0) {
-            child.code.bytes[child.code.size - 1] = 0xC3;
+        if (!child.code.bytes.empty()) {
+            child.code.bytes.back() = 0xC3;
         }
         
         return child;
@@ -48,39 +48,41 @@ public:
 
 private:
     void instruction_reorder(Organism& org) {
-        if (org.code.size < 4) return;
-        // Swap two instruction boundaries
-        size_t pos1 = rng_() % (org.code.size - 2);
-        size_t pos2 = rng_() % (org.code.size - 2);
-        if (pos1 != pos2 && pos1 + 2 <= org.code.size && pos2 + 2 <= org.code.size) {
+        if (org.code.bytes.size() < 4) return;
+        size_t max_pos = org.code.bytes.size() - 2;
+        if (max_pos == 0) return;
+        
+        size_t pos1 = rng_() % max_pos;
+        size_t pos2 = rng_() % max_pos;
+        if (pos1 != pos2 && pos1 + 2 <= org.code.bytes.size() && pos2 + 2 <= org.code.bytes.size()) {
             std::swap(org.code.bytes[pos1], org.code.bytes[pos2]);
             std::swap(org.code.bytes[pos1 + 1], org.code.bytes[pos2 + 1]);
         }
     }
     
     void vectorize_instruction(Organism& org) {
-        if (org.code.size == 0) return;
-        // Replace scalar op with vector op
-        size_t pos = rng_() % org.code.size;
+        if (org.code.bytes.empty()) return;
+        size_t pos = rng_() % org.code.bytes.size();
         switch (org.code.bytes[pos]) {
-            case 0x01: org.code.bytes[pos] = 0x01; break; // ADD -> VADDPD
-            case 0x03: org.code.bytes[pos] = 0x03; break; // XOR -> VPXORD
+            case 0x01: org.code.bytes[pos] = 0x01; break;
+            case 0x03: org.code.bytes[pos] = 0x03; break;
             default: break;
         }
     }
     
     void insert_nop(Organism& org) {
-        if (org.code.size >= MAX_CODE_SIZE) return;
-        // Insert NOP (0x90) at random position
-        size_t pos = rng_() % org.code.size;
-        memmove(&org.code.bytes[pos + 1], &org.code.bytes[pos], org.code.size - pos);
-        org.code.bytes[pos] = 0x90;
-        org.code.size++;
+        if (org.code.bytes.size() >= MAX_CODE_SIZE) return;
+        if (org.code.bytes.empty()) return;
+        
+        size_t pos = rng_() % org.code.bytes.size();
+        org.code.bytes.insert(org.code.bytes.begin() + pos, 0x90);
     }
     
     void change_immediate(Organism& org) {
-        if (org.code.size < 3) return;
-        size_t pos = rng_() % (org.code.size - 2);
+        if (org.code.bytes.size() < 3) return;
+        size_t max_pos = org.code.bytes.size() - 2;
+        if (max_pos == 0) return;
+        size_t pos = rng_() % max_pos;
         org.code.bytes[pos + 1] = static_cast<uint8_t>(rng_() % 256);
         org.code.bytes[pos + 2] = static_cast<uint8_t>(rng_() % 256);
     }

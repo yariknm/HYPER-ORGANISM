@@ -1,9 +1,13 @@
 #include "hyper_organism/isa/backend.hpp"
 #include "hyper_organism/core/types.hpp"
+#include "hyper_organism/sandbox/executor.hpp"
 
 #include <cstring>
 #include <vector>
 #include <stdexcept>
+#include <memory>
+#include <chrono>
+#include <random>
 
 namespace hyper_organism {
 namespace isa {
@@ -22,24 +26,12 @@ public:
     
     std::vector<uint8_t> encode(const Instruction& inst) override {
         std::vector<uint8_t> result;
-        // Minimal encoding for demonstration
-        // In production, this would use a full x86 encoder
         switch (inst.opcode) {
-            case 0x01: // ADD
-                result.push_back(0x01);
-                break;
-            case 0x02: // MOV
-                result.push_back(0x8B);
-                break;
-            case 0x03: // XOR
-                result.push_back(0x31);
-                break;
-            case 0xFF: // RET
-                result.push_back(0xC3);
-                break;
-            default:
-                result.push_back(0x90); // NOP
-                break;
+            case 0x01: result.push_back(0x01); break;
+            case 0x02: result.push_back(0x8B); break;
+            case 0x03: result.push_back(0x31); break;
+            case 0xFF: result.push_back(0xC3); break;
+            default: result.push_back(0x90); break;
         }
         return result;
     }
@@ -61,11 +53,10 @@ public:
     }
     
     uint8_t get_vector_op(uint8_t scalar_op) override {
-        // Map scalar ops to AVX-512 vector ops
         switch (scalar_op) {
-            case 0x01: return 0x01; // ADD -> VADDPD
-            case 0x02: return 0x02; // MOV -> VMOVDQA
-            case 0x03: return 0x03; // XOR -> VPXORD
+            case 0x01: return 0x01;
+            case 0x02: return 0x02;
+            case 0x03: return 0x03;
             default: return scalar_op;
         }
     }
@@ -76,10 +67,10 @@ public:
     
     uint8_t get_latency(uint8_t opcode) override {
         switch (opcode) {
-            case 0x01: return 4; // ADD latency
-            case 0x02: return 5; // MOV latency
-            case 0x03: return 1; // XOR latency
-            case 0xFF: return 0; // RET
+            case 0x01: return 4;
+            case 0x02: return 5;
+            case 0x03: return 1;
+            case 0xFF: return 0;
             default: return 4;
         }
     }
@@ -92,6 +83,67 @@ public:
             case 0xFF: return 1;
             default: return 1;
         }
+    }
+    
+    std::unique_ptr<sandbox::Executor> create_executor() override {
+        class SafeX86Executor : public sandbox::Executor {
+        public:
+            FitnessScore execute(
+                const MachineCode& code,
+                const void* input_data,
+                size_t input_size,
+                uint64_t timeout_cycles = 1000000
+            ) override {
+                if (!code.valid()) {
+                    throw std::runtime_error("Invalid machine code");
+                }
+                
+                // Simulated execution: analyze code quality without running it
+                std::mt19937 rng(42);
+                
+                size_t vector_ops = 0;
+                size_t memory_ops = 0;
+                size_t total_ops = code.bytes.size();
+                bool has_ret = false;
+                
+                for (size_t i = 0; i < code.bytes.size(); ++i) {
+                    uint8_t byte = code.bytes[i];
+                    if (byte == 0xC3 || byte == 0xC2) has_ret = true;
+                    if ((byte & 0x07) == 0x05 || (byte & 0x07) == 0x06) memory_ops++;
+                    if (byte >= 0x01 && byte <= 0x03) vector_ops++;
+                }
+                
+                FitnessScore score;
+                double base_cycles = 100.0;
+                double code_quality = 1.0;
+                
+                if (!has_ret) {
+                    code_quality *= 0.5;
+                }
+                
+                double vector_ratio = (total_ops > 0) ? static_cast<double>(vector_ops) / total_ops : 0.0;
+                base_cycles *= (1.0 - vector_ratio * 0.3);
+                
+                double memory_ratio = (total_ops > 0) ? static_cast<double>(memory_ops) / total_ops : 0.0;
+                base_cycles *= (1.0 + memory_ratio * 0.5);
+                
+                double size_factor = 1.0 + (code.bytes.size() / 1024.0) * 0.1;
+                base_cycles *= size_factor;
+                
+                score.cycles = base_cycles;
+                score.throughput = 1.0 / (score.cycles + 1.0);
+                score.correctness = has_ret ? 1.0 : 0.5;
+                score.energy_estimate = score.cycles * 0.001;
+                score.composite = score.to_rank();
+                
+                return score;
+            }
+            
+            bool supports(ISA a) const override { return a == ISA::X86_64; }
+            std::string type_name() const override { return "x86-64 simulated sandbox"; }
+        };
+        
+        return std::make_unique<SafeX86Executor>();
     }
 };
 

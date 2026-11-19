@@ -3,6 +3,7 @@
 
 #include <random>
 #include <cstring>
+#include <algorithm>
 
 namespace hyper_organism {
 namespace crossover {
@@ -16,54 +17,52 @@ public:
         CrossoverResult result;
         result.success = false;
         
-        if (a.code.size == 0 || b.code.size == 0) {
+        if (a.code.bytes.empty() || b.code.bytes.empty()) {
             return result;
         }
         
-        // Uniform crossover at instruction block level
-        size_t min_size = std::min(a.code.size, b.code.size);
-        size_t split_point = rng_() % min_size;
+        size_t min_size = std::min(a.code.bytes.size(), b.code.bytes.size());
+        if (min_size < 2) return result;
+        
+        size_t split_point = rng_() % (min_size - 1) + 1;
         
         result.child_a = a;
         result.child_b = b;
         
-        // Swap code segments
-        std::vector<uint8_t> temp_a(a.code.bytes.begin(), a.code.bytes.begin() + a.code.size);
-        std::vector<uint8_t> temp_b(b.code.bytes.begin(), b.code.bytes.begin() + b.code.size);
+        // Child A: first part from A, second part from B
+        std::vector<uint8_t> child_a_bytes;
+        child_a_bytes.reserve(MAX_CODE_SIZE);
+        child_a_bytes.insert(child_a_bytes.end(), a.code.bytes.begin(), 
+                            a.code.bytes.begin() + split_point);
+        child_a_bytes.insert(child_a_bytes.end(), b.code.bytes.begin() + split_point,
+                            b.code.bytes.end());
+        result.child_a.code.bytes = std::move(child_a_bytes);
         
-        // Crossover: child_a gets first half from a, second half from b
-        if (split_point < temp_b.size()) {
-            std::copy(temp_b.begin() + split_point, temp_b.end(), 
-                     temp_a.begin() + split_point);
-            result.child_a.code.size = std::max(split_point, temp_b.size() - split_point);
-        }
-        
-        if (split_point < temp_a.size()) {
-            std::copy(temp_a.begin() + split_point, temp_a.end(),
-                     temp_b.begin() + split_point);
-            result.child_b.code.size = std::max(split_point, temp_a.size() - split_point);
-        }
+        // Child B: first part from B, second part from A
+        std::vector<uint8_t> child_b_bytes;
+        child_b_bytes.reserve(MAX_CODE_SIZE);
+        child_b_bytes.insert(child_b_bytes.end(), b.code.bytes.begin(),
+                            b.code.bytes.begin() + split_point);
+        child_b_bytes.insert(child_b_bytes.end(), a.code.bytes.begin() + split_point,
+                            a.code.bytes.end());
+        result.child_b.code.bytes = std::move(child_b_bytes);
         
         // Ensure RET at end
-        if (result.child_a.code.size > 0) {
-            result.child_a.code.bytes[result.child_a.code.size - 1] = 0xC3;
+        if (!result.child_a.code.bytes.empty()) {
+            result.child_a.code.bytes.back() = 0xC3;
         }
-        if (result.child_b.code.size > 0) {
-            result.child_b.code.bytes[result.child_b.code.size - 1] = 0xC3;
+        if (!result.child_b.code.bytes.empty()) {
+            result.child_b.code.bytes.back() = 0xC3;
         }
         
         result.child_a.generation = std::max(a.generation, b.generation) + 1;
         result.child_b.generation = std::max(a.generation, b.generation) + 1;
-        result.child_a.parent_a = 0;
-        result.child_a.parent_b = 0;
-        result.child_b.parent_a = 0;
-        result.child_b.parent_b = 0;
         
         result.success = true;
         return result;
     }
     
-    void set_rate(double rate) override { rate_ = std::max(0.0, std::min(1.0, rate)); }
+    void set_rate(double rate) override { rate_ = rate; }
     double rate() const override { return rate_; }
     std::string type_name() const override { return "block crossover"; }
 

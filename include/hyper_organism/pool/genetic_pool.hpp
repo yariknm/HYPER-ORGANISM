@@ -1,11 +1,12 @@
 #ifndef HYPER_ORGANISM_POOL_GENETIC_POOL_HPP
 #define HYPER_ORGANISM_POOL_GENETIC_POOL_HPP
 
-#include "core/types.hpp"
-#include "mutation/mutator.hpp"
-#include "crossover/crossover.hpp"
-#include "sandbox/executor.hpp"
+#include "hyper_organism/core/types.hpp"
+#include "hyper_organism/mutation/mutator.hpp"
+#include "hyper_organism/crossover/crossover.hpp"
+#include "hyper_organism/sandbox/executor.hpp"
 #include <memory>
+#include <random>
 
 namespace hyper_organism {
 
@@ -40,6 +41,7 @@ private:
     std::unique_ptr<crossover::Crossover> crossover_;
     std::unique_ptr<sandbox::Executor> executor_;
     size_t generation_;
+    std::mt19937 rng_;
 };
 
 } // namespace hyper_organism

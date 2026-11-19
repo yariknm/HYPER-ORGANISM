@@ -1,7 +1,7 @@
 #ifndef HYPER_ORGANISM_MUTATION_MUTATOR_HPP
 #define HYPER_ORGANISM_MUTATION_MUTATOR_HPP
 
-#include "core/types.hpp"
+#include "hyper_organism/core/types.hpp"
 #include <memory>
 
 namespace hyper_organism {

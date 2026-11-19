@@ -38,21 +38,21 @@ struct Operand {
 };
 
 struct Instruction {
-    uint64_t offset;        // offset in code buffer
+    uint64_t offset;
     uint8_t opcode;
     uint8_t length;
     std::array<Operand, 4> operands;
-    std::vector<uint32_t> dependencies;  // indices of instructions this depends on
-    std::vector<uint32_t> dependents;    // indices of instructions that depend on this
+    std::vector<uint32_t> dependencies;
+    std::vector<uint32_t> dependents;
     bool is_vector;
     bool is_memory_access;
-    uint8_t pipeline_latency;  // cycles
-    uint8_t pipeline_throughput; // cycles
+    uint8_t pipeline_latency;
+    uint8_t pipeline_throughput;
 };
 
 struct DependencyGraph {
     std::vector<Instruction> nodes;
-    std::vector<std::vector<uint32_t>> edges;  // adjacency list
+    std::vector<std::vector<uint32_t>> edges;
     std::vector<uint32_t> topological_order;
     
     void build();
@@ -64,13 +64,12 @@ private:
 };
 
 struct MachineCode {
-    std::array<uint8_t, MAX_CODE_SIZE> bytes;
-    size_t size;
+    std::vector<uint8_t> bytes;
     ISA target_isa;
     
-    MachineCode() : size(0), target_isa(ISA::UNKNOWN) {}
+    MachineCode() : target_isa(ISA::UNKNOWN) {}
     
-    bool valid() const { return size > 0 && size <= MAX_CODE_SIZE; }
+    bool valid() const { return !bytes.empty() && bytes.size() <= MAX_CODE_SIZE; }
 };
 
 struct FitnessScore {
@@ -84,7 +83,6 @@ struct FitnessScore {
     
     bool is_valid() const { return correctness > 0.95; }
     double to_rank() const {
-        // Lower cycles is better; composite is weighted
         return correctness * (1.0 / (1.0 + cycles / 1000.0)) * throughput;
     }
 };
@@ -114,6 +112,11 @@ struct Population {
     double diversity;
 };
 
+std::string hash_organism(const Organism& org);
+bool validate_machine_code(const MachineCode& code);
+double cycles_to_fitness(double cycles, double baseline = 1000.0);
+double estimate_energy(double cycles, double voltage = 1.2);
+
 } // namespace hyper_organism
 
-#endif // HYPER_ORGANISM_CORE_TYPES_HPP
+#endif

@@ -1,5 +1,4 @@
 #include "hyper_organism/core/types.hpp"
-#include "hyper_organism/isa/backend.hpp"
 
 #include <cstring>
 #include <random>
@@ -29,8 +28,8 @@ void DependencyGraph::build() {
         }
         
         // Update last write
-        if (inst.reg < 256) {
-            last_write[inst.reg] = static_cast<int>(i);
+        if (inst.operands[0].type == OperandType::REGISTER && inst.operands[0].reg < 256) {
+            last_write[inst.operands[0].reg] = static_cast<int>(i);
         }
     }
     

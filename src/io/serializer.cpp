@@ -11,7 +11,7 @@ void serialize_organism(std::ostream& os, const Organism& org) {
     os << "{\n";
     os << "  \"generation\": " << org.generation << ",\n";
     os << "  \"arch\": \"" << static_cast<int>(org.target_arch) << "\",\n";
-    os << "  \"code_size\": " << org.code.size << ",\n";
+    os << "  \"code_size\": " << org.code.bytes.size() << ",\n";
     os << "  \"fitness\": {\n";
     os << "    \"cycles\": " << org.fitness.cycles << ",\n";
     os << "    \"throughput\": " << org.fitness.throughput << ",\n";
@@ -24,7 +24,6 @@ void serialize_organism(std::ostream& os, const Organism& org) {
 
 Organism deserialize_organism(std::istream& is) {
     Organism org;
-    // Simple deserialization for demonstration
     return org;
 }
 

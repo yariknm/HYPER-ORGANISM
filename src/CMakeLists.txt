@@ -1,29 +1,31 @@
-# Core types and data structures for HYPER-ORGANISM
-
 set(SOURCES
     core/types.cpp
-    core/organism.cpp
     core/instruction.cpp
     core/pipeline_model.cpp
     core/fitness.cpp
+    isa/x86_backend.cpp
     sandbox/executor.cpp
-    sandbox/memory_guard.cpp
-    sandbox/timeout_guard.cpp
+    sandbox/exception_handler.cpp
     eval/benchmark.cpp
     eval/validator.cpp
     mutation/mutator.cpp
     mutation/instruction_mutator.cpp
     mutation/loop_vectorizer.cpp
     mutation/reorderer.cpp
+    mutation/genetic_control.cpp
     crossover/crossover.cpp
     crossover/block_crossover.cpp
+    crossover/multi_parent.cpp
     pool/genetic_pool.cpp
-    pool/persistence.cpp
+    ecology/ecosystem.cpp
+    garbage/collector.cpp
+    immune/system.cpp
+    environment/dynamic.cpp
     distributed/node_controller.cpp
-    distributed/mpi_bridge.cpp
     distributed/rdma_bridge.cpp
     io/serializer.cpp
     io/genome_io.cpp
+    visualization/visualizer.cpp
     main.cpp
 )
 

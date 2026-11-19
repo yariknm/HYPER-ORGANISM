@@ -1,7 +1,7 @@
 #ifndef HYPER_ORGANISM_SANDBOX_EXECUTOR_HPP
 #define HYPER_ORGANISM_SANDBOX_EXECUTOR_HPP
 
-#include "core/types.hpp"
+#include "hyper_organism/core/types.hpp"
 #include <cstdint>
 #include <cstddef>
 #include <memory>
